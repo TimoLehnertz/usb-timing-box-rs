@@ -14,7 +14,7 @@
 //!
 //! # Getting started:
 //! ```rust,no_run
-//! use race_result_decoder::UsbTimingBox;
+//! use usb_timing_box_rs::UsbTimingBox;
 //! use std::time::Duration;
 //!
 //! let mut box_client = UsbTimingBox::builder("COM3").connect().unwrap();
