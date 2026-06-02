@@ -1,5 +1,5 @@
-use race_result_decoder::{UsbTimingBox, commands::PassingGetResult};
 use std::time::Duration;
+use usb_timing_box_rs::{UsbTimingBox, commands::PassingGetResult};
 
 fn live_tail_index(start_id: u32, count: u16) -> u32 {
     // One past the newest buffered passing, modulo u32.
