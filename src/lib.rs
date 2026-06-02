@@ -27,6 +27,9 @@
 //! ```
 //!
 //! Please also take a look at the example.
+//!
+//! ## Minimum Supported Rust Version (MSRV)
+//! The MSRV is 1.88.0 (The version that stabilized let chains).
 
 pub mod commands;
 pub mod config_parameter;

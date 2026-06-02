@@ -12,6 +12,9 @@ Alternatively you can clone this repository and run the example:
 cargo run --example read_passings
 ```
 
+## Minimum Supported Rust Version (MSRV)
+The MSRV is 1.88.0 (The version that stabilized let chains).
+
 ## Documentation
 This crate is based on the official documentation for the USB Timing Box. You can find that [here](https://www.raceresult.com/en/shophelp/index?id=346-Commands) and [here](https://www.raceresult.com/en/support/kbexport2?id=18).
 
