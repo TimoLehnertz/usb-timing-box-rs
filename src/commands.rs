@@ -81,6 +81,7 @@ pub struct BeaconRecord {
     /// Average beacon energy detect value (0..85).
     pub beacon_energy_detect: u8,
     /// Extra FW2.6 fields, if present.
+    /// Set the [crate::ConfigParameter::EnableFw26DataFormat] to 1 to enable this.
     pub extended: Option<BeaconExtended>,
 }
 
