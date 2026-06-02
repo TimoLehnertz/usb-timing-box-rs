@@ -51,7 +51,13 @@ jobs:
         with:
           submodules: true
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev pkg-config
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
+          pkg-config --version
+          pkg-config --modversion libudev
       - name: Install ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
@@ -70,7 +76,13 @@ jobs:
         with:
           submodules: true
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev pkg-config
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
+          pkg-config --version
+          pkg-config --modversion libudev
       - name: Install stable
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
@@ -89,7 +101,13 @@ jobs:
         with:
           submodules: true
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev pkg-config
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
+          pkg-config --version
+          pkg-config --modversion libudev
       - name: Install nightly
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
@@ -109,7 +127,13 @@ jobs:
         with:
           submodules: true
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev pkg-config
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
+          pkg-config --version
+          pkg-config --modversion libudev
       - name: Install stable
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
@@ -136,7 +160,13 @@ jobs:
         with:
           submodules: true
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev pkg-config
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
+          pkg-config --version
+          pkg-config --modversion libudev
       - name: Install ${{ matrix.msrv }}
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # branch=master
         with:
