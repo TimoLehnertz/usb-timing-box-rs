@@ -14,8 +14,8 @@
 //!
 //! # Getting started:
 //! ```rust,no_run
-//! use usb_timing_box_rs::UsbTimingBox;
-//! use std::time::Duration;
+//! # use usb_timing_box_rs::UsbTimingBox;
+//! # use std::time::Duration;
 //!
 //! let mut box_client = UsbTimingBox::builder("COM3").connect().unwrap();
 //!
