@@ -155,9 +155,10 @@ impl UsbTimingBox {
         let deadline = Instant::now() + timeout;
         while Instant::now() < deadline {
             if let Some(line) = self.try_read_line()?
-                && line.trim_end() == "AUTOBOOT" {
-                    return Ok(true);
-                }
+                && line.trim_end() == "AUTOBOOT"
+            {
+                return Ok(true);
+            }
         }
         Ok(false)
     }
