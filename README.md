@@ -1,3 +1,7 @@
+[![Crates.io](https://img.shields.io/crates/v/usb-timing-box-rs.svg)](https://crates.io/crates/usb-timing-box-rs)
+[![Documentation](https://docs.rs/usb-timing-box-rs/badge.svg)](https://docs.rs/usb-timing-box-rs/)
+[![dependency status](https://deps.rs/repo/github/timolehnertz/usb-timing-box-rs/status.svg)](https://deps.rs/repo/github/timolehnertz/usb-timing-box-rs)
+
 # usb-timing-box-rs
 Rust library for interfacing with a race result usb timing box via serial connection.
 
