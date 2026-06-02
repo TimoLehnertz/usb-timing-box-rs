@@ -49,7 +49,7 @@ pub enum PassingGetResult {
     WrongMode,
 }
 
-/// Parsed beacon record returned by [`UsbTimingBox::beacon_get`].
+/// Parsed beacon record returned by [`crate::UsbTimingBox::beacon_get`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BeaconRecord {
     /// Device ID of system (4 hex digits in protocol).

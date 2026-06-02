@@ -30,7 +30,7 @@ pub enum ConfigParameter {
     /// - `01` = enabled
     AutoShutdownOnPowerLoss = 0x04,
 
-    /// See [OperationMode]
+    /// See [`crate::commands::OperationMode`]
     ///
     /// Allowed values:
     /// - `05` = usb-kiosk
