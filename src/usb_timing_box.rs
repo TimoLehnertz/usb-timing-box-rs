@@ -154,11 +154,10 @@ impl UsbTimingBox {
     pub fn wait_for_autoboot(&mut self, timeout: Duration) -> Result<bool, Error> {
         let deadline = Instant::now() + timeout;
         while Instant::now() < deadline {
-            if let Some(line) = self.try_read_line()? {
-                if line.trim_end() == "AUTOBOOT" {
+            if let Some(line) = self.try_read_line()?
+                && line.trim_end() == "AUTOBOOT" {
                     return Ok(true);
                 }
-            }
         }
         Ok(false)
     }
