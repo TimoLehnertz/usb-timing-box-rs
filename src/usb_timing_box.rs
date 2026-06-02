@@ -1,13 +1,20 @@
+use std::{
+    marker::PhantomData,
+    time::{Duration, Instant},
+};
+
 use serialport::{DataBits, FlowControl, Parity, SerialPort, StopBits};
 
 use crate::{
     ConfigParameter, DEFAULT_BAUD_RATE,
-    commands::{BeaconRecord, CommandResponse, EpochReference, OperationMode, PassingGetResult, PassingInfo},
+    commands::{
+        BeaconRecordFw25, BeaconRecordFw26, CommandResponse, EpochReferenceFw25, EpochReferenceFw26, OperationMode,
+        PassingGetResult, PassingInfo, passing_get_from_response_fw25, passing_get_from_response_fw26,
+    },
     error::Error,
-    passing::{Passing, PassingBatch},
-    utils::{hex2, hex8, parse_hex_u8, parse_hex_u16, parse_hex_u32, unix_time_now},
+    firmware::{Fw25, Fw26},
+    utils::{hex2, hex8, parse_hex_u8, parse_hex_u32, parse_hex_u64, unix_time_now},
 };
-use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone)]
 pub struct UsbTimingBoxBuilder {
@@ -49,7 +56,7 @@ impl UsbTimingBoxBuilder {
         self
     }
 
-    pub fn connect(self) -> Result<UsbTimingBox, Error> {
+    pub fn connect(self) -> Result<UsbTimingBox<Fw25>, Error> {
         let mut port = serialport::new(self.port_name, self.baud_rate)
             .data_bits(DataBits::Eight)
             .parity(Parity::None)
@@ -65,17 +72,20 @@ impl UsbTimingBoxBuilder {
             port.write_request_to_send(false)?;
         }
 
-        Ok(UsbTimingBox { port, scratch: Vec::new() })
+        Ok(UsbTimingBox { port, scratch: Vec::new(), _firmware: PhantomData })
     }
 }
 
+/// USB Timing Box client parameterized by firmware data format ([`Fw25`] default, [`Fw26`] after
+/// [`UsbTimingBox::enable_fw26_data_format`]).
 #[derive(Debug)]
-pub struct UsbTimingBox {
+pub struct UsbTimingBox<F = Fw25> {
     port: Box<dyn SerialPort>,
     scratch: Vec<u8>,
+    _firmware: PhantomData<F>,
 }
 
-impl UsbTimingBox {
+impl UsbTimingBox<Fw25> {
     pub fn builder(port_name: impl Into<String>) -> UsbTimingBoxBuilder {
         UsbTimingBoxBuilder::new(port_name)
     }
@@ -83,7 +93,9 @@ impl UsbTimingBox {
     pub fn connect(port_name: impl Into<String>) -> Result<Self, Error> {
         UsbTimingBoxBuilder::new(port_name).connect()
     }
+}
 
+impl<F> UsbTimingBox<F> {
     pub fn set_mode(&mut self, mode: OperationMode) -> Result<(), Error> {
         self.conf_set(ConfigParameter::OperationMode, mode as u8)
     }
@@ -189,6 +201,7 @@ impl UsbTimingBox {
         self.port.flush()?;
         let command =
             line_without_newline.split(';').next().ok_or_else(|| Error::Protocol("empty command".to_string()))?;
+
         self.read_command_response(command)
     }
 
@@ -286,74 +299,6 @@ impl UsbTimingBox {
         Ok(value.to_string())
     }
 
-    pub fn epoch_ref_get(&mut self) -> Result<EpochReference, Error> {
-        let response = self.command("EPOCHREFGET")?;
-        self.ensure_code(&response, 0x00)?;
-        let line =
-            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFGET missing data line".to_string()))?;
-
-        EpochReference::parse(line)
-    }
-
-    pub fn epoch_ref_set(&mut self, epoch_seconds: u32) -> Result<EpochReference, Error> {
-        let response = self.command_with_args("EPOCHREFSET", &[hex8(epoch_seconds)])?;
-        self.ensure_code(&response, 0x00)?;
-        let line =
-            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
-
-        EpochReference::parse(line)
-    }
-
-    pub fn epoch_ref_set_with_dtr_pulse(
-        &mut self,
-        epoch_seconds: u32,
-        pulse_length: Duration,
-    ) -> Result<EpochReference, Error> {
-        let mut line = String::from("EPOCHREFSET;");
-        line.push_str(&hex8(epoch_seconds));
-        line.push('\n');
-        self.port.write_all(line.as_bytes())?;
-        self.port.flush()?;
-        self.pulse_dtr_high(pulse_length)?;
-        let response = self.read_command_response("EPOCHREFSET")?;
-        self.ensure_code(&response, 0x00)?;
-        let body =
-            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
-
-        EpochReference::parse(body)
-    }
-
-    pub fn epoch_ref_sync_to_next_second(&mut self) -> Result<EpochReference, Error> {
-        let now = unix_time_now()?;
-        let target = now.saturating_add(1);
-        let mut line = String::from("EPOCHREFSET;");
-        line.push_str(&hex8(target));
-        line.push('\n');
-        self.port.write_all(line.as_bytes())?;
-        self.port.flush()?;
-
-        while unix_time_now()? < target {
-            std::thread::sleep(Duration::from_millis(2));
-        }
-        self.pulse_dtr_high(Duration::from_millis(200))?;
-
-        let response = self.read_command_response("EPOCHREFSET")?;
-        self.ensure_code(&response, 0x00)?;
-        let body =
-            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
-
-        EpochReference::parse(body)
-    }
-
-    pub fn timestamp_get(&mut self) -> Result<u32, Error> {
-        let response = self.command("TIMESTAMPGET")?;
-        self.ensure_code(&response, 0x00)?;
-        let line =
-            response.single_data_line().ok_or_else(|| Error::Protocol("TIMESTAMPGET missing data line".to_string()))?;
-
-        parse_hex_u32(line)
-    }
-
     /// **FW 2.5 and up**
     ///
     /// Reports information about passings in the internal buffer.
@@ -364,143 +309,7 @@ impl UsbTimingBox {
             .single_data_line()
             .ok_or_else(|| Error::Protocol("PASSINGINFOGET missing data line".to_string()))?;
 
-        let mut parts = line.split(';');
-
-        Ok(PassingInfo {
-            count: parts
-                .next()
-                .ok_or_else(|| Error::Protocol("PASSINGINFOGET missing count".to_string()))
-                .and_then(parse_hex_u16)?,
-            start_id: parts
-                .next()
-                .ok_or_else(|| Error::Protocol("PASSINGINFOGET missing start_id".to_string()))
-                .and_then(parse_hex_u32)?,
-            start_timestamp: parts
-                .next()
-                .ok_or_else(|| Error::Protocol("PASSINGINFOGET missing start_timestamp".to_string()))
-                .and_then(parse_hex_u32)?,
-            last_id: parts
-                .next()
-                .ok_or_else(|| Error::Protocol("PASSINGINFOGET missing last_id".to_string()))
-                .and_then(parse_hex_u32)?,
-            last_timestamp: parts
-                .next()
-                .ok_or_else(|| Error::Protocol("PASSINGINFOGET missing last_timestamp".to_string()))
-                .and_then(parse_hex_u32)?,
-        })
-    }
-
-    pub fn passing_get(&mut self, start_index: u32) -> Result<PassingGetResult, Error> {
-        let response = self.command_with_args("PASSINGGET", &[hex8(start_index)])?;
-        match response.return_code {
-            0x00 => {
-                let header = response
-                    .data_lines
-                    .first()
-                    .ok_or_else(|| Error::Protocol("PASSINGGET missing header line".to_string()))?;
-
-                let mut parts = header.split(';');
-
-                let echoed_start = parts
-                    .next()
-                    .ok_or_else(|| Error::Protocol("PASSINGGET missing echoed start".to_string()))
-                    .and_then(parse_hex_u32)?;
-
-                if echoed_start != start_index {
-                    return Err(Error::Protocol(format!(
-                        "PASSINGGET echoed start mismatch: header={echoed_start}, requested={start_index}"
-                    )));
-                }
-
-                let count = parts
-                    .next()
-                    .ok_or_else(|| Error::Protocol("PASSINGGET missing count".to_string()))
-                    .and_then(parse_hex_u8)?;
-
-                let mut passings = Vec::new();
-
-                for line in response.data_lines.iter().skip(1) {
-                    passings.push(Passing::from_line(line)?);
-                }
-
-                if passings.len() != count as usize {
-                    return Err(Error::Protocol(format!(
-                        "PASSINGGET count mismatch: header={count}, records={}",
-                        passings.len()
-                    )));
-                }
-
-                Ok(PassingGetResult::Ok(PassingBatch { requested_start: start_index, passings }))
-            }
-            0x10 => {
-                let line = response
-                    .single_data_line()
-                    .ok_or_else(|| Error::Protocol("PASSINGGET;10 missing data line".to_string()))?;
-
-                let mut parts = line.split(';');
-
-                let echoed_start = parts
-                    .next()
-                    .ok_or_else(|| Error::Protocol("PASSINGGET;10 missing echoed start".to_string()))
-                    .and_then(parse_hex_u32)?;
-
-                if echoed_start != start_index {
-                    return Err(Error::Protocol(format!(
-                        "PASSINGGET;10 echoed start mismatch: header={echoed_start}, requested={start_index}"
-                    )));
-                }
-
-                let min_start_index = parts
-                    .next()
-                    .ok_or_else(|| Error::Protocol("PASSINGGET;10 missing min start".to_string()))
-                    .and_then(parse_hex_u32)?;
-
-                Ok(PassingGetResult::StartIndexTooLow { min_start_index })
-            }
-
-            0x11 => Ok(PassingGetResult::WrongMode),
-
-            other => Err(Error::CommandFailed {
-                command: response.command,
-                return_code: other,
-                data_lines: response.data_lines,
-            }),
-        }
-    }
-
-    /// Queries status beacons from active boxes (`BEACONGET`).
-    ///
-    /// The device returns:
-    ///
-    /// - a count line (`[BeaconCount:2]` in hex)
-    /// - followed by `BeaconCount` beacon records
-    /// - and an empty line terminator
-    ///
-    /// This parser supports both documented record layouts:
-    ///
-    /// - Standard format (17 fields)
-    /// - FW2.6 format (26 fields, e.g. after `CONFSET;B3;1`)
-    ///
-    /// If the record count does not match, or a record has an unknown shape,
-    /// this returns an error.
-    pub fn beacon_get(&mut self) -> Result<Vec<BeaconRecord>, Error> {
-        let response = self.command("BEACONGET")?;
-        self.ensure_code(&response, 0x00)?;
-        let count_line =
-            response.data_lines.first().ok_or_else(|| Error::Protocol("BEACONGET missing count line".to_string()))?;
-
-        let expected_count = parse_hex_u8(count_line)? as usize;
-        let mut out = Vec::new();
-        for line in response.data_lines.iter().skip(1) {
-            out.push(BeaconRecord::from_line(line)?);
-        }
-        if out.len() != expected_count {
-            return Err(Error::Protocol(format!(
-                "BEACONGET count mismatch: header={expected_count}, records={}",
-                out.len()
-            )));
-        }
-        Ok(out)
+        PassingInfo::from_line(line)
     }
 
     /// From the docs:
@@ -600,5 +409,200 @@ impl UsbTimingBox {
                 data_lines: response.data_lines.clone(),
             })
         }
+    }
+}
+
+impl UsbTimingBox<Fw25> {
+    /// Enables FW 2.6 data reporting on the device and returns a client typed for that format.
+    ///
+    /// See [`ConfigParameter::EnableFw26DataFormat`] (signed temperature, extended beacons,
+    /// 2048 Hz timestamps with day adjustment).
+    pub fn enable_fw26_data_format(mut self) -> Result<UsbTimingBox<Fw26>, Error> {
+        self.conf_set(ConfigParameter::EnableFw26DataFormat, 1)?;
+        Ok(UsbTimingBox { port: self.port, scratch: self.scratch, _firmware: PhantomData })
+    }
+
+    pub fn epoch_ref_get(&mut self) -> Result<EpochReferenceFw25, Error> {
+        let response = self.command("EPOCHREFGET")?;
+        self.ensure_code(&response, 0x00)?;
+        let line =
+            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFGET missing data line".to_string()))?;
+        EpochReferenceFw25::parse(line)
+    }
+
+    pub fn epoch_ref_set(&mut self, epoch_seconds: u32) -> Result<EpochReferenceFw25, Error> {
+        let response = self.command_with_args("EPOCHREFSET", &[hex8(epoch_seconds)])?;
+        self.ensure_code(&response, 0x00)?;
+        let line =
+            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
+        EpochReferenceFw25::parse(line)
+    }
+
+    pub fn epoch_ref_set_with_dtr_pulse(
+        &mut self,
+        epoch_seconds: u32,
+        pulse_length: Duration,
+    ) -> Result<EpochReferenceFw25, Error> {
+        let mut line = String::from("EPOCHREFSET;");
+        line.push_str(&hex8(epoch_seconds));
+        line.push('\n');
+        self.port.write_all(line.as_bytes())?;
+        self.port.flush()?;
+        self.pulse_dtr_high(pulse_length)?;
+        let response = self.read_command_response("EPOCHREFSET")?;
+        self.ensure_code(&response, 0x00)?;
+        let body =
+            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
+        EpochReferenceFw25::parse(body)
+    }
+
+    pub fn epoch_ref_sync_to_next_second(&mut self) -> Result<EpochReferenceFw25, Error> {
+        let now = unix_time_now()?;
+        let target = now.saturating_add(1);
+        let mut line = String::from("EPOCHREFSET;");
+        line.push_str(&hex8(target));
+        line.push('\n');
+        self.port.write_all(line.as_bytes())?;
+        self.port.flush()?;
+
+        while unix_time_now()? < target {
+            std::thread::sleep(Duration::from_millis(2));
+        }
+        self.pulse_dtr_high(Duration::from_millis(200))?;
+
+        let response = self.read_command_response("EPOCHREFSET")?;
+        self.ensure_code(&response, 0x00)?;
+        let body =
+            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
+        EpochReferenceFw25::parse(body)
+    }
+
+    /// Current box timestamp (32-bit, 256 ticks per second).
+    ///
+    /// ## Note
+    /// Do not use for timing calculation purposes! Your operating system serial
+    /// port data buffer is introducing unpredictable delays.
+    pub fn timestamp_get(&mut self) -> Result<u32, Error> {
+        let response = self.command("TIMESTAMPGET")?;
+        self.ensure_code(&response, 0x00)?;
+        let line =
+            response.single_data_line().ok_or_else(|| Error::Protocol("TIMESTAMPGET missing data line".to_string()))?;
+        parse_hex_u32(line)
+    }
+
+    pub fn passing_get(&mut self, start_index: u32) -> Result<PassingGetResult<Fw25>, Error> {
+        let response = self.command_with_args("PASSINGGET", &[hex8(start_index)])?;
+        passing_get_from_response_fw25(start_index, response)
+    }
+
+    /// Queries status beacons (`BEACONGET`, 17-field FW 2.5 layout).
+    pub fn beacon_get(&mut self) -> Result<Vec<BeaconRecordFw25>, Error> {
+        let response = self.command("BEACONGET")?;
+        self.ensure_code(&response, 0x00)?;
+        let count_line =
+            response.data_lines.first().ok_or_else(|| Error::Protocol("BEACONGET missing count line".to_string()))?;
+        let expected_count = parse_hex_u8(count_line)? as usize;
+        let mut out = Vec::new();
+        for line in response.data_lines.iter().skip(1) {
+            out.push(BeaconRecordFw25::from_line(line)?);
+        }
+        if out.len() != expected_count {
+            return Err(Error::Protocol(format!(
+                "BEACONGET count mismatch: header={expected_count}, records={}",
+                out.len()
+            )));
+        }
+        Ok(out)
+    }
+}
+
+impl UsbTimingBox<Fw26> {
+    pub fn epoch_ref_get(&mut self) -> Result<EpochReferenceFw26, Error> {
+        let response = self.command("EPOCHREFGET")?;
+        self.ensure_code(&response, 0x00)?;
+        let line =
+            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFGET missing data line".to_string()))?;
+        EpochReferenceFw26::parse(line)
+    }
+
+    pub fn epoch_ref_set(&mut self, epoch_seconds: u32) -> Result<EpochReferenceFw26, Error> {
+        let response = self.command_with_args("EPOCHREFSET", &[hex8(epoch_seconds)])?;
+        self.ensure_code(&response, 0x00)?;
+        let line =
+            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
+        EpochReferenceFw26::parse(line)
+    }
+
+    pub fn epoch_ref_set_with_dtr_pulse(
+        &mut self,
+        epoch_seconds: u32,
+        pulse_length: Duration,
+    ) -> Result<EpochReferenceFw26, Error> {
+        let mut line = String::from("EPOCHREFSET;");
+        line.push_str(&hex8(epoch_seconds));
+        line.push('\n');
+        self.port.write_all(line.as_bytes())?;
+        self.port.flush()?;
+        self.pulse_dtr_high(pulse_length)?;
+        let response = self.read_command_response("EPOCHREFSET")?;
+        self.ensure_code(&response, 0x00)?;
+        let body =
+            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
+        EpochReferenceFw26::parse(body)
+    }
+
+    pub fn epoch_ref_sync_to_next_second(&mut self) -> Result<EpochReferenceFw26, Error> {
+        let now = unix_time_now()?;
+        let target = now.saturating_add(1);
+        let mut line = String::from("EPOCHREFSET;");
+        line.push_str(&hex8(target));
+        line.push('\n');
+        self.port.write_all(line.as_bytes())?;
+        self.port.flush()?;
+
+        while unix_time_now()? < target {
+            std::thread::sleep(Duration::from_millis(2));
+        }
+        self.pulse_dtr_high(Duration::from_millis(200))?;
+
+        let response = self.read_command_response("EPOCHREFSET")?;
+        self.ensure_code(&response, 0x00)?;
+        let body =
+            response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
+        EpochReferenceFw26::parse(body)
+    }
+
+    /// Current box timestamp (40-bit, 2048 ticks per second, 10 hex digits on the wire).
+    pub fn timestamp_get(&mut self) -> Result<u64, Error> {
+        let response = self.command("TIMESTAMPGET")?;
+        self.ensure_code(&response, 0x00)?;
+        let line =
+            response.single_data_line().ok_or_else(|| Error::Protocol("TIMESTAMPGET missing data line".to_string()))?;
+        parse_hex_u64(line)
+    }
+
+    pub fn passing_get(&mut self, start_index: u32) -> Result<PassingGetResult<Fw26>, Error> {
+        let response = self.command_with_args("PASSINGGET", &[hex8(start_index)])?;
+        passing_get_from_response_fw26(start_index, response)
+    }
+
+    /// Queries status beacons (`BEACONGET`, 26-field FW 2.6 layout).
+    pub fn beacon_get(&mut self) -> Result<Vec<BeaconRecordFw26>, Error> {
+        let response = self.command("BEACONGET")?;
+        self.ensure_code(&response, 0x00)?;
+        let count_line =
+            response.data_lines.first().ok_or_else(|| Error::Protocol("BEACONGET missing count line".to_string()))?;
+        let expected_count = parse_hex_u8(count_line)? as usize;
+        let mut out = Vec::new();
+        for line in response.data_lines.iter().skip(1) {
+            out.push(BeaconRecordFw26::from_line(line)?);
+        }
+        if out.len() != expected_count {
+            return Err(Error::Protocol(format!(
+                "BEACONGET count mismatch: header={expected_count}, records={}",
+                out.len()
+            )));
+        }
+        Ok(out)
     }
 }

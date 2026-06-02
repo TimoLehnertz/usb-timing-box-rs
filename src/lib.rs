@@ -12,6 +12,12 @@
 //! relevant snippets from the official documentation. However it is highly recommended
 //! to read the official documentation for the most up to date information.
 //!
+//! # Firmware data format (type state)
+//!
+//! [`UsbTimingBox`] is parameterized by [`Fw25`] (default) or [`Fw26`]. Call
+//! [`UsbTimingBox::enable_fw26_data_format`] on a FW 2.5 client to switch the device and
+//! obtain a [`UsbTimingBox<Fw26>`] that parses passings, beacons, and timestamps accordingly.
+//!
 //! # Getting started:
 //! ```rust,no_run
 //! # use usb_timing_box_rs::UsbTimingBox;
@@ -34,12 +40,19 @@
 pub mod commands;
 pub mod config_parameter;
 pub mod error;
+pub mod firmware;
 pub mod passing;
 pub mod usb_timing_box;
 mod utils;
 
+pub use commands::{
+    BeaconMode, BeaconPowerStatus, BeaconRecordFw25, BeaconRecordFw26, BoxType, CommandResponse, EpochReferenceFw25,
+    EpochReferenceFw26, LoopStatus, OperationMode, PassingGetResult, PassingInfo, PowerConnection,
+};
 pub use config_parameter::ConfigParameter;
 pub use error::Error;
+pub use firmware::{FW25_TICKS_PER_SECOND, FW26_TICKS_PER_SECOND, Fw25, Fw26};
+pub use passing::{PassingBatch, PassingFw25, PassingFw26, StrengthCombined};
 pub use usb_timing_box::*;
 
 pub const DEFAULT_BAUD_RATE: u32 = 19_200;
