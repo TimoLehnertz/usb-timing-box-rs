@@ -2,6 +2,14 @@
 name = "usb-timing-box-rs"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.88.0"
+publish = true
+license = "MIT"
+description = "Rust library for interfacing with a race result usb timing box via serial connection."
+repository = "https://github.com/TimoLehnertz/usb-timing-box-rs"
+readme = "README.md"
+keywords = ["timing-box", "box", "race-result", "serial"]
+categories = ["hardware-support"]
 
 [dependencies]
 serialport = "4.8.1"
