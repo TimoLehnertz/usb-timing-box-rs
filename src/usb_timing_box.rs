@@ -438,7 +438,7 @@ impl<F> UsbTimingBox<F> {
                 Ok(0) => {}
                 Ok(n) => self.scratch.extend_from_slice(&buf[..n]),
                 Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {}
-                Err(e) => return Err(Error::Io(e)),
+                Err(e) => return Err(e.into()),
             }
         }
     }
@@ -455,7 +455,7 @@ impl<F> UsbTimingBox<F> {
                 Ok(self.consume_line_from_scratch())
             }
             Err(e) if e.kind() == std::io::ErrorKind::TimedOut => Ok(None),
-            Err(e) => Err(Error::Io(e)),
+            Err(e) => Err(e.into()),
         }
     }
 
