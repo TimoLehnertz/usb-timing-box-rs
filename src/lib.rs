@@ -34,13 +34,17 @@
 //!
 //! Please also take a look at the example.
 //!
-//! ## Optional `serde` feature
+//! # Features
 //!
-//! Enable with `usb-timing-box-rs = { version = "…", features = ["serde"] }` to derive
-//! [`serde::Serialize`] and [`serde::Deserialize`] on [`PassingFw25`], [`PassingFw26`],
-//! [`StrengthCombined`], and [`PassingBatch`].
+//! Optional Cargo features extend the passing types ([`PassingFw25`], [`PassingFw26`],
+//! [`StrengthCombined`], [`PassingBatch`], and firmware markers [`Fw25`] / [`Fw26`]):
 //!
-//! ## Minimum Supported Rust Version (MSRV)
+//! - **`serde`** — [`Serialize`](https://docs.rs/serde/latest/serde/trait.Serialize.html) and
+//!   [`Deserialize`](https://docs.rs/serde/latest/serde/trait.Deserialize.html)
+//! - **`schemars`** — [`JsonSchema`](https://docs.rs/schemars/latest/schemars/trait.JsonSchema.html)
+//!   (e.g. `schemars::schema_for!(PassingFw25)`)
+//!
+//! # Minimum Supported Rust Version (MSRV)
 //! The MSRV is 1.88.0 (The version that stabilized let chains).
 
 pub mod commands;

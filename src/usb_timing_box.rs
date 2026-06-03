@@ -456,7 +456,7 @@ impl UsbTimingBox<Fw25> {
         EpochReferenceFw25::parse(body)
     }
 
-    /// Sets the computer time reference using the recommended [EPOCHREFSET] + DTR workflow.
+    /// Sets the computer time reference using the recommended `EPOCHREFSET` + DTR workflow.
     ///
     /// The USB Timing Box has no real-time clock. Passing timestamps are only meaningful after
     /// you store a reference pair `(unix_time_seconds, timestamp_ticks)` in the device. That pair

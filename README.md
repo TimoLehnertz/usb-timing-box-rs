@@ -16,6 +16,13 @@ Alternatively you can clone this repository and run the example:
 cargo run --example read_passings
 ```
 
+## Features
+
+Optional Cargo features extend the passing types (`PassingFw25`, `PassingFw26`, `StrengthCombined`, `PassingBatch`, and firmware markers `Fw25` / `Fw26`):
+
+- **`serde`** — `Serialize` and `Deserialize` via [serde](https://docs.rs/serde)
+- **`schemars`** — `JsonSchema` via [schemars](https://docs.rs/schemars) (e.g. `schemars::schema_for!(PassingFw25)`)
+
 ## Minimum Supported Rust Version (MSRV)
 The MSRV is 1.88.0 (The version that stabilized let chains).
 

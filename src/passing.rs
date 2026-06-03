@@ -9,6 +9,8 @@ use core::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "schemars", schemars(transparent))]
 pub struct StrengthCombined(pub u8);
 
 impl StrengthCombined {
@@ -30,6 +32,7 @@ impl StrengthCombined {
 /// [LoopOnly:1];[LoopID:1];[ChannelID:1];[Status:2];[InternalData:2]`
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct PassingFw25 {
     pub transponder_id: String,
     /// Transponder wakeup counter for this passing.
@@ -120,6 +123,7 @@ impl fmt::Display for PassingFw25 {
 /// `;[ExtraCode]` (e.g. `A-1000`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct PassingFw26 {
     pub transponder_id: String,
     pub wakeup_counter: u16,
@@ -240,13 +244,12 @@ pub(crate) fn strip_line_checksum(line: &str) -> &str {
 /// Passing batch returned by [`crate::PassingGetResult`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(
     feature = "serde",
-    serde(bound(
-        serialize = "PassingOf<F>: serde::Serialize",
-        deserialize = "PassingOf<F>: serde::Deserialize<'de>"
-    ))
+    serde(bound(serialize = "PassingOf<F>: serde::Serialize", deserialize = "PassingOf<F>: serde::Deserialize<'de>"))
 )]
+#[cfg_attr(feature = "schemars", schemars(bound = "PassingOf<F>: schemars::JsonSchema"))]
 pub struct PassingBatch<F: FirmwarePassing> {
     pub requested_start: u32,
     pub passings: Vec<PassingOf<F>>,
@@ -255,16 +258,33 @@ pub struct PassingBatch<F: FirmwarePassing> {
 /// Resolves the passing type for firmware marker `F`.
 pub type PassingOf<F> = <F as FirmwarePassing>::Passing;
 
-/// Associates a [`PassingFw25`] or [`PassingFw26`] type with a firmware marker.
+/// Optional [`serde`] bounds (no-op when the feature is disabled).
+#[cfg(feature = "serde")]
+mod passing_serde {
+    pub trait Bound: serde::Serialize + serde::de::DeserializeOwned {}
+    impl<T> Bound for T where T: serde::Serialize + serde::de::DeserializeOwned {}
+}
 #[cfg(not(feature = "serde"))]
-pub trait FirmwarePassing {
-    type Passing: Clone + fmt::Debug + PartialEq + Eq;
+mod passing_serde {
+    pub trait Bound {}
+    impl<T> Bound for T {}
+}
+
+/// Optional [`schemars`] bounds (no-op when the feature is disabled).
+#[cfg(feature = "schemars")]
+mod passing_schemars {
+    pub trait Bound: schemars::JsonSchema {}
+    impl<T> Bound for T where T: schemars::JsonSchema {}
+}
+#[cfg(not(feature = "schemars"))]
+mod passing_schemars {
+    pub trait Bound {}
+    impl<T> Bound for T {}
 }
 
 /// Associates a [`PassingFw25`] or [`PassingFw26`] type with a firmware marker.
-#[cfg(feature = "serde")]
-pub trait FirmwarePassing {
-    type Passing: Clone + fmt::Debug + PartialEq + Eq + serde::Serialize + serde::de::DeserializeOwned;
+pub trait FirmwarePassing: passing_schemars::Bound {
+    type Passing: Clone + fmt::Debug + PartialEq + Eq + passing_serde::Bound + passing_schemars::Bound;
 }
 
 impl FirmwarePassing for Fw25 {

@@ -4,6 +4,7 @@
 ///
 /// Timestamps use 32 bits at 256 ticks per second. Startup offset is 24 hours of ticks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Fw25;
 
 /// USB Timing Box reporting firmware 2.6 data format.
@@ -12,6 +13,7 @@ pub struct Fw25;
 /// Timestamps use 40 bits at 2048 ticks per second with a separate day-adjustment field.
 /// Beacon records include signed temperature and additional status fields.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Fw26;
 
 /// Ticks per second for FW 2.5 passing and epoch timestamps.
