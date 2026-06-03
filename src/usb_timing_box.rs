@@ -456,6 +456,54 @@ impl UsbTimingBox<Fw25> {
         EpochReferenceFw25::parse(body)
     }
 
+    /// Sets the computer time reference using the recommended [EPOCHREFSET] + DTR workflow.
+    ///
+    /// The USB Timing Box has no real-time clock. Passing timestamps are only meaningful after
+    /// you store a reference pair `(unix_time_seconds, timestamp_ticks)` in the device. That pair
+    /// is created by [`EPOCHREFSET`](https://www.raceresult.com/en/support/kb?id=422-Command-EPOCHREFSET)
+    /// together with a DTR pulse and can later be read back with
+    /// [`EPOCHREFGET`](https://www.raceresult.com/en/support/kb?id=421-Command-EPOCHREFGET).
+    ///
+    /// # What this function does
+    ///
+    /// Implements the documented best-practice sequence from
+    /// [Command EPOCHREFSET](https://www.raceresult.com/en/support/kb?id=422-Command-EPOCHREFSET):
+    ///
+    /// 1. Sends `EPOCHREFSET;<next_unix_second>\n` where `next_unix_second` is the current host
+    ///    UNIX time plus one second (aligned to the *upcoming* full second).
+    /// 2. Busy-waits until the host clock reaches that second.
+    /// 3. Pulses the serial **DTR line HIGH for 200 ms**, then returns it LOW. The box captures
+    ///    its internal time base on the **rising edge** of DTR; this must happen within **2 s**
+    ///    of the `EPOCHREFSET` command or the device replies with error `10` (DTR timeout).
+    /// 4. Reads the command reply and returns the stored pair as [`EpochReferenceFw25`].
+    ///
+    /// The returned values match the protocol data line
+    /// `[ComputerTime:8];[TimeStamp:8]` (`unix_time_seconds`; `timestamp_ticks` at 256 ticks/s).
+    ///
+    /// # Converting passings afterward
+    ///
+    /// Use [`EpochReferenceFw25::passing_time_seconds`] (or the FW 2.6 equivalent) with each
+    /// passing's box timestamp:
+    ///
+    /// `pass_time = ref_computer_time + (pass_timestamp - ref_timestamp) / ticks_per_second`
+    ///
+    /// # When to call
+    ///
+    /// Call once after connect if [`Self::epoch_ref_get`] reports zeros (no reference stored yet),
+    /// e.g. after a fresh boot. If a reference is already present (e.g. host crashed mid-event),
+    /// prefer [`Self::epoch_ref_get`] and only re-sync when you intentionally want a new anchor.
+    ///
+    /// # DTR requirement
+    ///
+    /// Accurate sync requires controlling DTR (see crate docs on DTR-line reset). If DTR cannot
+    /// be driven, disable box DTR handling via [`ConfigParameter::UseDtr`] and use
+    /// [`Self::epoch_ref_set`] without sub-second alignment instead (lower accuracy).
+    ///
+    /// # See also
+    ///
+    /// - [`Self::epoch_ref_get`] — read the pair stored by the last successful sync
+    /// - [`Self::epoch_ref_set`] — set epoch without waiting for a boundary (no DTR timing)
+    /// - [`Self::epoch_ref_set_with_dtr_pulse`] — set a specific epoch with a custom DTR pulse length
     pub fn epoch_ref_sync_to_next_second(&mut self) -> Result<EpochReferenceFw25, Error> {
         let now = unix_time_now()?;
         let target = now.saturating_add(1);
@@ -520,16 +568,20 @@ impl UsbTimingBox<Fw26> {
     pub fn epoch_ref_get(&mut self) -> Result<EpochReferenceFw26, Error> {
         let response = self.command("EPOCHREFGET")?;
         self.ensure_code(&response, 0x00)?;
+
         let line =
             response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFGET missing data line".to_string()))?;
+
         EpochReferenceFw26::parse(line)
     }
 
     pub fn epoch_ref_set(&mut self, epoch_seconds: u32) -> Result<EpochReferenceFw26, Error> {
         let response = self.command_with_args("EPOCHREFSET", &[hex8(epoch_seconds)])?;
         self.ensure_code(&response, 0x00)?;
+
         let line =
             response.single_data_line().ok_or_else(|| Error::Protocol("EPOCHREFSET missing data line".to_string()))?;
+
         EpochReferenceFw26::parse(line)
     }
 
