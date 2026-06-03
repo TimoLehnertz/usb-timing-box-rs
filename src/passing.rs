@@ -7,6 +7,8 @@ use core::fmt;
 
 /// Combined loop + 2.4 GHz strength byte (FW 2.5+), encoded as `XGGGLLLL`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct StrengthCombined(pub u8);
 
 impl StrengthCombined {
@@ -27,6 +29,7 @@ impl StrengthCombined {
 /// `[TransponderID];[WakeupCounter:4];[TimeStamp:8];[Hits:2];[Strength:2];[Battery:2];[Temperature:2];
 /// [LoopOnly:1];[LoopID:1];[ChannelID:1];[Status:2];[InternalData:2]`
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PassingFw25 {
     pub transponder_id: String,
     /// Transponder wakeup counter for this passing.
@@ -116,6 +119,7 @@ impl fmt::Display for PassingFw25 {
 /// [LoopOnly:1];[LoopID:1];[ChannelID:1];[Status:2];[InternalData:2];[RFU:2];[Extra:2]` and optionally
 /// `;[ExtraCode]` (e.g. `A-1000`).
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PassingFw26 {
     pub transponder_id: String,
     pub wakeup_counter: u16,
@@ -235,6 +239,14 @@ pub(crate) fn strip_line_checksum(line: &str) -> &str {
 
 /// Passing batch returned by [`crate::PassingGetResult`].
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(bound(
+        serialize = "PassingOf<F>: serde::Serialize",
+        deserialize = "PassingOf<F>: serde::Deserialize<'de>"
+    ))
+)]
 pub struct PassingBatch<F: FirmwarePassing> {
     pub requested_start: u32,
     pub passings: Vec<PassingOf<F>>,
@@ -244,8 +256,15 @@ pub struct PassingBatch<F: FirmwarePassing> {
 pub type PassingOf<F> = <F as FirmwarePassing>::Passing;
 
 /// Associates a [`PassingFw25`] or [`PassingFw26`] type with a firmware marker.
+#[cfg(not(feature = "serde"))]
 pub trait FirmwarePassing {
     type Passing: Clone + fmt::Debug + PartialEq + Eq;
+}
+
+/// Associates a [`PassingFw25`] or [`PassingFw26`] type with a firmware marker.
+#[cfg(feature = "serde")]
+pub trait FirmwarePassing {
+    type Passing: Clone + fmt::Debug + PartialEq + Eq + serde::Serialize + serde::de::DeserializeOwned;
 }
 
 impl FirmwarePassing for Fw25 {

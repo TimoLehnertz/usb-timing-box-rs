@@ -34,6 +34,12 @@
 //!
 //! Please also take a look at the example.
 //!
+//! ## Optional `serde` feature
+//!
+//! Enable with `usb-timing-box-rs = { version = "…", features = ["serde"] }` to derive
+//! [`serde::Serialize`] and [`serde::Deserialize`] on [`PassingFw25`], [`PassingFw26`],
+//! [`StrengthCombined`], and [`PassingBatch`].
+//!
 //! ## Minimum Supported Rust Version (MSRV)
 //! The MSRV is 1.88.0 (The version that stabilized let chains).
 
