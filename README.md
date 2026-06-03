@@ -13,7 +13,7 @@ To get started either add the library to your own project with `cargo add race-r
 
 Alternatively you can clone this repository and run the example:
 ```bash
-cargo run --example read_passings
+cargo run --example get_started
 ```
 
 ## Features

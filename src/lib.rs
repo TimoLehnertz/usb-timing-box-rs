@@ -32,7 +32,7 @@
 //! println!("Site survey: {:?}", site_survey);
 //! ```
 //!
-//! Please also take a look at the example.
+//! For a more complete example take a look at the `get_started` example.
 //!
 //! # Features
 //!
@@ -53,17 +53,19 @@ pub mod commands;
 pub mod config_parameter;
 pub mod error;
 pub mod firmware;
+pub mod info_parameter;
 pub mod passing;
 pub mod usb_timing_box;
 mod utils;
 
 pub use commands::{
-    BeaconMode, BeaconPowerStatus, BeaconRecordFw25, BeaconRecordFw26, BoxType, CommandResponse, EpochReferenceFw25,
-    EpochReferenceFw26, LoopStatus, OperationMode, PassingGetResult, PassingInfo, PowerConnection,
+    BatteryState, BeaconMode, BeaconPowerStatus, BeaconRecordFw25, BeaconRecordFw26, BoxType, CommandResponse,
+    EpochReferenceFw25, EpochReferenceFw26, LoopStatus, OperationMode, PassingGetResult, PassingInfo, PowerConnection,
 };
 pub use config_parameter::ConfigParameter;
 pub use error::Error;
 pub use firmware::{FW25_TICKS_PER_SECOND, FW26_TICKS_PER_SECOND, Fw25, Fw26};
+pub use info_parameter::InfoParameter;
 pub use passing::{PassingBatch, PassingFw25, PassingFw26, StrengthCombined};
 pub use usb_timing_box::*;
 

@@ -8,11 +8,17 @@ use serialport::{DataBits, FlowControl, Parity, SerialPort, StopBits};
 use crate::{
     ConfigParameter, DEFAULT_BAUD_RATE,
     commands::{
-        BeaconRecordFw25, BeaconRecordFw26, CommandResponse, EpochReferenceFw25, EpochReferenceFw26, OperationMode,
-        PassingGetResult, PassingInfo, passing_get_from_response_fw25, passing_get_from_response_fw26,
+        BatteryState, BeaconRecordFw25, BeaconRecordFw26, BoxType, CommandResponse, EpochReferenceFw25,
+        EpochReferenceFw26, LoopStatus, OperationMode, PassingGetResult, PassingInfo, passing_get_from_response_fw25,
+        passing_get_from_response_fw26,
     },
     error::Error,
     firmware::{Fw25, Fw26},
+    info_parameter::{
+        InfoParameter, parse_battery_level_percent, parse_battery_state, parse_box_type, parse_decoder_id,
+        parse_internal_temperature_fw25, parse_internal_temperature_fw26, parse_loop_status,
+        parse_measured_loop_power_percent, parse_noise_status, parse_version_tenths, parse_voltage_tenths,
+    },
     utils::{hex2, hex8, parse_hex_u8, parse_hex_u32, parse_hex_u64, unix_time_now},
 };
 
@@ -287,16 +293,82 @@ impl<F> UsbTimingBox<F> {
         self.ensure_code(&response, 0x00)
     }
 
-    pub fn info_get_raw(&mut self, parameter_id: u8) -> Result<String, Error> {
+    fn info_get_raw(&mut self, parameter: InfoParameter) -> Result<String, Error> {
+        let parameter_id = parameter.id();
         let response = self.command_with_args("INFOGET", &[hex2(parameter_id)])?;
         self.ensure_code(&response, 0x00)?;
         let line =
             response.single_data_line().ok_or_else(|| Error::Protocol("INFOGET missing data line".to_string()))?;
         let mut parts = line.split(';');
-        let _id =
+        let id =
             parts.next().ok_or_else(|| Error::Protocol("INFOGET missing id".to_string())).and_then(parse_hex_u8)?;
+
+        if id != parameter_id {
+            return Err(Error::Protocol(format!("INFOGET id mismatch: expected {parameter_id:02x}, got {id:02x}")));
+        }
+
         let value = parts.next().ok_or_else(|| Error::Protocol("INFOGET missing value".to_string()))?;
         Ok(value.to_string())
+    }
+
+    /// Decoder ID (4 hex digits, e.g. `1387` → `A-4999`). See [`InfoParameter::DecoderId`].
+    pub fn info_get_decoder_id(&mut self) -> Result<u16, Error> {
+        parse_decoder_id(&self.info_get_raw(InfoParameter::DecoderId)?)
+    }
+
+    /// Firmware version (e.g. `18` → 2.4). See [`InfoParameter::FirmwareVersion`].
+    pub fn info_get_firmware_version(&mut self) -> Result<f32, Error> {
+        parse_version_tenths(&self.info_get_raw(InfoParameter::FirmwareVersion)?)
+    }
+
+    /// Hardware version. See [`InfoParameter::HardwareVersion`].
+    pub fn info_get_hardware_version(&mut self) -> Result<f32, Error> {
+        parse_version_tenths(&self.info_get_raw(InfoParameter::HardwareVersion)?)
+    }
+
+    /// Device type. See [`InfoParameter::BoxType`].
+    pub fn info_get_box_type(&mut self) -> Result<BoxType, Error> {
+        parse_box_type(&self.info_get_raw(InfoParameter::BoxType)?)
+    }
+
+    /// Battery voltage in volts. See [`InfoParameter::BatteryVoltage`].
+    pub fn info_get_battery_voltage(&mut self) -> Result<f32, Error> {
+        parse_voltage_tenths(&self.info_get_raw(InfoParameter::BatteryVoltage)?)
+    }
+
+    /// Battery state. See [`InfoParameter::BatteryState`].
+    pub fn info_get_battery_state(&mut self) -> Result<BatteryState, Error> {
+        parse_battery_state(&self.info_get_raw(InfoParameter::BatteryState)?)
+    }
+
+    /// Battery level 0–100 %. See [`InfoParameter::BatteryLevel`].
+    pub fn info_get_battery_level(&mut self) -> Result<u8, Error> {
+        parse_battery_level_percent(&self.info_get_raw(InfoParameter::BatteryLevel)?)
+    }
+
+    /// Supply voltage in volts. See [`InfoParameter::SupplyVoltage`].
+    pub fn info_get_supply_voltage(&mut self) -> Result<f32, Error> {
+        parse_voltage_tenths(&self.info_get_raw(InfoParameter::SupplyVoltage)?)
+    }
+
+    /// Loop status. See [`InfoParameter::LoopStatus`].
+    pub fn info_get_loop_status(&mut self) -> Result<LoopStatus, Error> {
+        parse_loop_status(&self.info_get_raw(InfoParameter::LoopStatus)?)
+    }
+
+    /// Build revision string (internal). See [`InfoParameter::BuiltRevision`].
+    pub fn info_get_built_revision(&mut self) -> Result<String, Error> {
+        Ok(self.info_get_raw(InfoParameter::BuiltRevision)?)
+    }
+
+    /// Measured loop power 0–100 %. See [`InfoParameter::MeasuredLoopPower`].
+    pub fn info_get_measured_loop_power(&mut self) -> Result<u8, Error> {
+        parse_measured_loop_power_percent(&self.info_get_raw(InfoParameter::MeasuredLoopPower)?)
+    }
+
+    /// Channel noise 0–10 (FW 2.6+). See [`InfoParameter::NoiseStatus`].
+    pub fn info_get_noise_status(&mut self) -> Result<u8, Error> {
+        parse_noise_status(&self.info_get_raw(InfoParameter::NoiseStatus)?)
     }
 
     /// **FW 2.5 and up**
@@ -420,6 +492,11 @@ impl UsbTimingBox<Fw25> {
     pub fn enable_fw26_data_format(mut self) -> Result<UsbTimingBox<Fw26>, Error> {
         self.conf_set(ConfigParameter::EnableFw26DataFormat, 1)?;
         Ok(UsbTimingBox { port: self.port, scratch: self.scratch, _firmware: PhantomData })
+    }
+
+    /// Internal temperature 0–100 °C (FW 2.5). See [`InfoParameter::InternalTemperature`].
+    pub fn info_get_internal_temperature(&mut self) -> Result<u8, Error> {
+        parse_internal_temperature_fw25(&self.info_get_raw(InfoParameter::InternalTemperature)?)
     }
 
     pub fn epoch_ref_get(&mut self) -> Result<EpochReferenceFw25, Error> {
@@ -565,6 +642,11 @@ impl UsbTimingBox<Fw25> {
 }
 
 impl UsbTimingBox<Fw26> {
+    /// Internal temperature in °C (FW 2.6 signed hex). See [`InfoParameter::InternalTemperature`].
+    pub fn info_get_internal_temperature(&mut self) -> Result<i8, Error> {
+        parse_internal_temperature_fw26(&self.info_get_raw(InfoParameter::InternalTemperature)?)
+    }
+
     pub fn epoch_ref_get(&mut self) -> Result<EpochReferenceFw26, Error> {
         let response = self.command("EPOCHREFGET")?;
         self.ensure_code(&response, 0x00)?;

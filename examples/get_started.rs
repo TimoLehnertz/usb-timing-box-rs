@@ -11,11 +11,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut box_client = box_client.enable_fw26_data_format()?;
 
-    let passing_info = box_client.passing_info_get()?;
-    println!("Passing info: {:?}", passing_info);
-
     // let site_survey = box_client.site_survey()?;
     // println!("Site survey: {:?}", site_survey);
+
+    println!("Decoder ID: 0x{:04x}", box_client.info_get_decoder_id()?);
+    println!("Firmware version: {:.1}", box_client.info_get_firmware_version()?);
+    println!("Hardware version: {:.1}", box_client.info_get_hardware_version()?);
+    println!("Box type: {:?}", box_client.info_get_box_type()?);
+    println!("Battery voltage: {:.1} V", box_client.info_get_battery_voltage()?);
+    println!("Battery state: {:?}", box_client.info_get_battery_state()?);
+    println!("Battery level: {} %", box_client.info_get_battery_level()?);
+    println!("Internal temperature: {} °C", box_client.info_get_internal_temperature()?);
+    println!("Supply voltage: {:.1} V", box_client.info_get_supply_voltage()?);
+    println!("Loop status: {:?}", box_client.info_get_loop_status()?);
+    println!("Built revision: {}", box_client.info_get_built_revision()?);
+    println!("Measured loop power: {} %", box_client.info_get_measured_loop_power()?);
+
+    // Doesn't seem to work on usb timing box although documentation states it does.
+    // println!("Noise status: {}", box_client.info_get_noise_status()?);
+
+    let passing_info = box_client.passing_info_get()?;
+    println!("Passing info: {:?}", passing_info);
 
     let epoch = box_client.epoch_ref_sync_to_next_second()?;
 

@@ -346,7 +346,6 @@ impl BeaconRecordFw26 {
 
 pub enum BeaconPowerStatus {
     BatteryHours(u8),
-
     Voltage(f32),
 }
 
@@ -354,27 +353,19 @@ pub enum BeaconPowerStatus {
 
 pub enum LoopStatus {
     Ok,
-
     Fault,
-
     Limit,
-
     OverVoltage,
-
     Unknown(u8),
 }
 
 impl LoopStatus {
-    fn from_raw(raw: u8) -> Self {
+    pub fn from_raw(raw: u8) -> Self {
         match raw {
             0x00 => Self::Ok,
-
             0x01 => Self::Fault,
-
             0x02 => Self::Limit,
-
             0x04 => Self::OverVoltage,
-
             other => Self::Unknown(other),
         }
     }
@@ -384,19 +375,12 @@ impl LoopStatus {
 
 pub enum BeaconMode {
     TimingMode,
-
     StoreMode,
-
     RepeatMode,
-
     RepeatImpulseMode,
-
     NoTimingDevice,
-
     TrackingStart,
-
     TrackingStop,
-
     Unknown(u8),
 }
 
@@ -404,19 +388,12 @@ impl BeaconMode {
     fn from_raw(raw: u8) -> Self {
         match raw {
             0x00 => Self::TimingMode,
-
             0x02 => Self::StoreMode,
-
             0x03 => Self::RepeatMode,
-
             0x04 => Self::RepeatImpulseMode,
-
             0x10 => Self::NoTimingDevice,
-
             0x21 => Self::TrackingStart,
-
             0x22 => Self::TrackingStop,
-
             other => Self::Unknown(other),
         }
     }
@@ -426,11 +403,8 @@ impl BeaconMode {
 
 pub enum PowerConnection {
     Power12V,
-
     Usb,
-
     Battery,
-
     Unknown(u8),
 }
 
@@ -438,34 +412,46 @@ impl PowerConnection {
     fn from_raw(raw: u8) -> Self {
         match raw {
             0 => Self::Power12V,
-
             1 => Self::Usb,
-
             2 => Self::Battery,
-
             other => Self::Unknown(other),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-
 pub enum BoxType {
     ActiveExtension,
-
     LoopBox,
-
     ManagementBox,
-
     UsbTimingBox,
-
     Ubidium,
-
     Unknown(u8),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BatteryState {
+    Fault,
+    Charging,
+    ReducedCharging,
+    Discharging,
+    Unknown(u8),
+}
+
+impl BatteryState {
+    pub fn from_raw(raw: u8) -> Self {
+        match raw {
+            0 => Self::Fault,
+            1 => Self::Charging,
+            2 => Self::ReducedCharging,
+            3 => Self::Discharging,
+            other => Self::Unknown(other),
+        }
+    }
+}
+
 impl BoxType {
-    fn from_raw(raw: u8) -> Self {
+    pub fn from_raw(raw: u8) -> Self {
         match raw {
             0x0a => Self::ActiveExtension,
 

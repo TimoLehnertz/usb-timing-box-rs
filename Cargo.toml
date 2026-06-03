@@ -21,7 +21,7 @@ serde = ["dep:serde"]
 schemars = ["dep:schemars"]
 
 [[example]]
-name = "read_passings"
+name = "get_started"
 
 [dependencies]
 chrono = { version = "0.4", optional = true, default-features = false, features = ["std", "clock"] }
