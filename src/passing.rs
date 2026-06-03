@@ -92,6 +92,12 @@ impl PassingFw25 {
     pub fn time_seconds_since_epoch(&self, epoch: crate::EpochReferenceFw25) -> f64 {
         epoch.passing_time_seconds(self.timestamp_ticks)
     }
+
+    /// UTC wall-clock time for this passing (requires the `chrono` feature).
+    #[cfg(feature = "chrono")]
+    pub fn datetime_utc(&self, epoch: crate::EpochReferenceFw25) -> Result<chrono::DateTime<chrono::Utc>, Error> {
+        utc_datetime_from_seconds(self.time_seconds_since_epoch(epoch))
+    }
 }
 
 impl fmt::Display for PassingFw25 {
@@ -207,6 +213,12 @@ impl PassingFw26 {
     pub fn time_seconds_since_epoch(&self, epoch: crate::EpochReferenceFw26) -> f64 {
         epoch.passing_time_seconds(self.timestamp_ticks)
     }
+
+    /// UTC wall-clock time for this passing (requires the `chrono` feature).
+    #[cfg(feature = "chrono")]
+    pub fn datetime_utc(&self, epoch: crate::EpochReferenceFw26) -> Result<chrono::DateTime<chrono::Utc>, Error> {
+        utc_datetime_from_seconds(self.time_seconds_since_epoch(epoch))
+    }
 }
 
 impl fmt::Display for PassingFw26 {
@@ -239,6 +251,17 @@ impl fmt::Display for PassingFw26 {
 /// Strips an optional per-line checksum suffix (`=XX`) before parsing.
 pub(crate) fn strip_line_checksum(line: &str) -> &str {
     line.split('=').next().unwrap_or(line).trim()
+}
+
+#[cfg(feature = "chrono")]
+fn utc_datetime_from_seconds(seconds: f64) -> Result<chrono::DateTime<chrono::Utc>, Error> {
+    use chrono::TimeZone;
+    let secs = seconds.trunc() as i64;
+    let nanos = ((seconds - secs as f64) * 1e9).round() as u32;
+    chrono::Utc
+        .timestamp_opt(secs, nanos)
+        .single()
+        .ok_or_else(|| Error::Protocol(format!("passing timestamp out of range: {seconds}")))
 }
 
 /// Passing batch returned by [`crate::PassingGetResult`].

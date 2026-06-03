@@ -22,6 +22,7 @@ Optional Cargo features extend the passing types (`PassingFw25`, `PassingFw26`, 
 
 - **`serde`** — `Serialize` and `Deserialize` via [serde](https://docs.rs/serde)
 - **`schemars`** — `JsonSchema` via [schemars](https://docs.rs/schemars) (e.g. `schemars::schema_for!(PassingFw25)`)
+- **`chrono`** — [`PassingFw25::datetime_utc`] / [`PassingFw26::datetime_utc`] for UTC [`chrono::DateTime`](https://docs.rs/chrono/latest/chrono/struct.DateTime.html)
 
 ## Minimum Supported Rust Version (MSRV)
 The MSRV is 1.88.0 (The version that stabilized let chains).

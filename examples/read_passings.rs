@@ -1,6 +1,8 @@
 use std::time::Duration;
 use usb_timing_box_rs::{UsbTimingBox, commands::PassingGetResult};
 
+const POLL_INTERVAL: Duration = Duration::from_millis(150);
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut box_client = UsbTimingBox::builder("COM3").connect()?;
 
@@ -15,9 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let site_survey = box_client.site_survey()?;
     // println!("Site survey: {:?}", site_survey);
 
-    if let Ok(epoch) = box_client.epoch_ref_get() {
-        println!("Current epoch ref: unix={} timestamp=0x{:08x}", epoch.unix_time_seconds, epoch.timestamp_ticks);
-    }
+    let epoch = box_client.epoch_ref_sync_to_next_second()?;
 
     let startup_timestamp = box_client.timestamp_get()?;
 
@@ -34,28 +34,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         match box_client.passing_get(next_index)? {
             PassingGetResult::Ok(batch) => {
-                let mut printed = 0usize;
                 if batch.passings.is_empty() {
-                    std::thread::sleep(Duration::from_millis(150));
+                    std::thread::sleep(POLL_INTERVAL);
                     continue;
                 }
                 for passing in &batch.passings {
-                    if passing.timestamp_ticks <= startup_timestamp {
-                        continue;
-                    }
-                    println!("Passing: {passing:?}");
-                    printed += 1;
+                    let timestamp = passing.datetime_utc(epoch)?.with_timezone(&chrono::Local);
+                    println!("{timestamp}: {passing:?}");
                 }
-                println!(
-                    "batch_size={}, printed={printed} next_start_index={}",
-                    batch.passings.len(),
-                    batch.next_start_index()
-                );
                 next_index = batch.next_start_index();
             }
             PassingGetResult::StartIndexNotFound { .. } => {
                 // This also gets returned when the start index does not yet exist.
-                std::thread::sleep(Duration::from_millis(150));
+                std::thread::sleep(POLL_INTERVAL);
             }
             PassingGetResult::WrongMode => {
                 eprintln!("Device is in a mode that does not allow PASSINGGET.");

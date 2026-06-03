@@ -43,6 +43,8 @@
 //!   [`Deserialize`](https://docs.rs/serde/latest/serde/trait.Deserialize.html)
 //! - **`schemars`** — [`JsonSchema`](https://docs.rs/schemars/latest/schemars/trait.JsonSchema.html)
 //!   (e.g. `schemars::schema_for!(PassingFw25)`)
+//! - **`chrono`** — [`PassingFw25::datetime_utc`] / [`PassingFw26::datetime_utc`] returning
+//!   [`chrono::DateTime`](https://docs.rs/chrono/latest/chrono/struct.DateTime.html) in UTC
 //!
 //! # Minimum Supported Rust Version (MSRV)
 //! The MSRV is 1.88.0 (The version that stabilized let chains).
