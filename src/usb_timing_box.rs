@@ -621,6 +621,11 @@ impl UsbTimingBox<Fw25> {
     }
 
     /// Queries status beacons (`BEACONGET`, 17-field FW 2.5 layout).
+    ///
+    /// This is unclear in the official docs:
+    ///
+    /// Why does this return a list of beacons? Probably so that one device can send
+    /// beacons for multiple other devices that are connected to it.
     pub fn beacon_get(&mut self) -> Result<Vec<BeaconRecordFw25>, Error> {
         let response = self.command("BEACONGET")?;
         self.ensure_code(&response, 0x00)?;
@@ -721,11 +726,17 @@ impl UsbTimingBox<Fw26> {
     }
 
     /// Queries status beacons (`BEACONGET`, 26-field FW 2.6 layout).
+    ///
+    /// This is unclear in the official docs:
+    ///
+    /// Why does this return a list of beacons? Probably so that one device can send
+    /// beacons for multiple other devices that are connected to it.
     pub fn beacon_get(&mut self) -> Result<Vec<BeaconRecordFw26>, Error> {
         let response = self.command("BEACONGET")?;
         self.ensure_code(&response, 0x00)?;
         let count_line =
             response.data_lines.first().ok_or_else(|| Error::Protocol("BEACONGET missing count line".to_string()))?;
+
         let expected_count = parse_hex_u8(count_line)? as usize;
         let mut out = Vec::new();
         for line in response.data_lines.iter().skip(1) {
