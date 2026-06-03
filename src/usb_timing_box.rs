@@ -358,7 +358,7 @@ impl<F> UsbTimingBox<F> {
 
     /// Build revision string (internal). See [`InfoParameter::BuiltRevision`].
     pub fn info_get_built_revision(&mut self) -> Result<String, Error> {
-        Ok(self.info_get_raw(InfoParameter::BuiltRevision)?)
+        self.info_get_raw(InfoParameter::BuiltRevision)
     }
 
     /// Measured loop power 0–100 %. See [`InfoParameter::MeasuredLoopPower`].
