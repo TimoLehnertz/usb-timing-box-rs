@@ -89,13 +89,13 @@ impl PassingFw25 {
     }
 
     /// Converts box ticks to seconds since [`crate::EpochReferenceFw25::unix_time_seconds`].
-    pub fn time_seconds_since_epoch(&self, epoch: crate::EpochReferenceFw25) -> f64 {
+    pub fn time_seconds_since_epoch(&self, epoch: &crate::EpochReferenceFw25) -> f64 {
         epoch.passing_time_seconds(self.timestamp_ticks)
     }
 
     /// UTC wall-clock time for this passing (requires the `chrono` feature).
     #[cfg(feature = "chrono")]
-    pub fn datetime_utc(&self, epoch: crate::EpochReferenceFw25) -> Result<chrono::DateTime<chrono::Utc>, Error> {
+    pub fn datetime_utc(&self, epoch: &crate::EpochReferenceFw25) -> Result<chrono::DateTime<chrono::Utc>, Error> {
         utc_datetime_from_seconds(self.time_seconds_since_epoch(epoch))
     }
 }

@@ -526,7 +526,7 @@ impl EpochReferenceFw25 {
         Ok(Self { unix_time_seconds, timestamp_ticks })
     }
 
-    pub fn passing_time_seconds(self, passing_timestamp_ticks: u32) -> f64 {
+    pub fn passing_time_seconds(&self, passing_timestamp_ticks: u32) -> f64 {
         let delta = passing_timestamp_ticks.wrapping_sub(self.timestamp_ticks) as f64;
 
         self.unix_time_seconds as f64 + (delta / f64::from(FW25_TICKS_PER_SECOND))
