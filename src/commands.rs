@@ -352,7 +352,8 @@ pub enum BeaconPowerStatus {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 
 pub enum LoopStatus {
-    Ok,
+    /// Called LoopOk instead of Ok to not conflict with [core::result::Result::Ok]
+    LoopOk,
     Fault,
     Limit,
     OverVoltage,
@@ -362,7 +363,7 @@ pub enum LoopStatus {
 impl LoopStatus {
     pub fn from_raw(raw: u8) -> Self {
         match raw {
-            0x00 => Self::Ok,
+            0x00 => Self::LoopOk,
             0x01 => Self::Fault,
             0x02 => Self::Limit,
             0x04 => Self::OverVoltage,
