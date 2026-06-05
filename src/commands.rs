@@ -6,7 +6,6 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-
 pub struct CommandResponse {
     pub command: String,
 
@@ -25,7 +24,9 @@ impl CommandResponse {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct PassingInfo {
     /// Number of passings in buffer.
     pub count: u16,
@@ -96,7 +97,9 @@ pub enum PassingGetResult<F: crate::passing::FirmwarePassing> {
 /// Parsed beacon record (FW 2.5 standard format, 17 fields).
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct BeaconRecordFw25 {
     pub active_device_id: u16,
 
@@ -198,7 +201,9 @@ impl BeaconRecordFw25 {
 /// Parsed beacon record (FW 2.6 format, 26 fields).
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct BeaconRecordFw26 {
     pub active_device_id: u16,
 
@@ -343,14 +348,17 @@ impl BeaconRecordFw26 {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum BeaconPowerStatus {
     BatteryHours(u8),
     Voltage(f32),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum LoopStatus {
     /// Called LoopOk instead of Ok to not conflict with [core::result::Result::Ok]
     LoopOk,
@@ -373,7 +381,8 @@ impl LoopStatus {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum BeaconMode {
     TimingMode,
     StoreMode,
@@ -401,7 +410,8 @@ impl BeaconMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum PowerConnection {
     Power12V,
     Usb,
@@ -421,6 +431,8 @@ impl PowerConnection {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum BoxType {
     ActiveExtension,
     LoopBox,
@@ -471,6 +483,8 @@ impl BoxType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum OperationMode {
     /// for testing transponders, showing total number of passings and last transponder ID on the display.
 
@@ -490,7 +504,8 @@ pub enum OperationMode {
 /// Epoch reference pair (FW 2.5, 256 Hz timestamps).
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct EpochReferenceFw25 {
     pub unix_time_seconds: u32,
 
@@ -523,7 +538,8 @@ impl EpochReferenceFw25 {
 /// Epoch reference pair (FW 2.6, 2048 Hz / 40-bit timestamps).
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct EpochReferenceFw26 {
     pub unix_time_seconds: u32,
 
