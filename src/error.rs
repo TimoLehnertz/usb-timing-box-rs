@@ -1,6 +1,8 @@
 use std::{io, sync::Arc};
 
 #[derive(Debug, Clone, thiserror::Error)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum Error {
     #[error("io error: {0}")]
     Io(Arc<io::Error>),
