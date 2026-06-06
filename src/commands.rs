@@ -349,6 +349,7 @@ impl BeaconRecordFw26 {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type", content = "data"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum BeaconPowerStatus {
     BatteryHours(u8),
@@ -357,6 +358,7 @@ pub enum BeaconPowerStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type", content = "data"))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum LoopStatus {
@@ -382,6 +384,7 @@ impl LoopStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type", content = "data"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum BeaconMode {
     TimingMode,
@@ -411,6 +414,7 @@ impl BeaconMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type", content = "data"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum PowerConnection {
     Power12V,
@@ -432,6 +436,7 @@ impl PowerConnection {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type", content = "data"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum BoxType {
     ActiveExtension,
@@ -505,6 +510,7 @@ pub enum OperationMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct EpochReferenceFw25 {
     pub unix_time_seconds: u32,
@@ -539,6 +545,7 @@ impl EpochReferenceFw25 {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct EpochReferenceFw26 {
     pub unix_time_seconds: u32,

@@ -32,6 +32,7 @@ impl StrengthCombined {
 /// [LoopOnly:1];[LoopID:1];[ChannelID:1];[Status:2];[InternalData:2]`
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct PassingFw25 {
     pub transponder_id: String,
@@ -129,6 +130,7 @@ impl fmt::Display for PassingFw25 {
 /// `;[ExtraCode]` (e.g. `A-1000`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct PassingFw26 {
     pub transponder_id: String,
@@ -267,6 +269,7 @@ fn utc_datetime_from_seconds(seconds: f64) -> Result<chrono::DateTime<chrono::Ut
 /// Passing batch returned by [`crate::PassingGetResult`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(
     feature = "serde",

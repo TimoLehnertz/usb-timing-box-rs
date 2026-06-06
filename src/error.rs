@@ -2,6 +2,8 @@ use std::{io, sync::Arc};
 
 #[derive(Debug, Clone, thiserror::Error)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(content = "data", tag = "type"))]
+#[cfg_attr(feature = "serde", serde(rename_all_fields = "camelCase"))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum Error {
     #[error("io error: {0}")]
